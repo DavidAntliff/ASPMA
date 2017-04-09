@@ -26,4 +26,8 @@ def genSine(A, f, phi, fs, t):
         x (numpy array) = The generated sinusoid (use np.cos())
     """
     T = np.arange(0.0, t, 1/fs)
+    #T = np.arange(-t/2, t/2, 1/fs)
     return A * np.cos(2 * np.pi * f * T + phi)
+
+def test_genSine():
+    assert np.allclose(genSine(1.0, 10.0, 1.0, 50.0, 0.1), np.array([ 0.54030231, -0.63332387, -0.93171798,  0.05749049,  0.96724906]))

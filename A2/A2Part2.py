@@ -25,4 +25,10 @@ def genComplexSine(k, N):
         The function should return a numpy array
         cSine (numpy array) = The generated complex sinusoid (length N)
     """
-    ## Your code here
+    j = np.complex(0, 1)
+    cSine = np.exp(-j * 2 * np.pi * k / N * np.arange(N))
+    return cSine
+
+def test_genComplexSine():
+    assert np.allclose(genComplexSine(N=5, k=1), np.array([ 1.0 + 0.j,  0.30901699 - 0.95105652j, -0.80901699 - 0.58778525j, -0.80901699 + 0.58778525j,
+0.30901699 + 0.95105652j]))

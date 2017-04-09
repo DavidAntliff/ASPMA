@@ -25,4 +25,14 @@ def DFT(x):
         The function should return a numpy array of length N
         X (numpy array) = The N point DFT of the input sequence x
     """
-    ## Your code here
+    N = len(x)
+    j = np.complex(0, 1)
+    X = np.array([])
+
+    for k in range(N):
+        s = np.exp(j * 2 * np.pi * k / N * np.arange(N))
+        X = np.append(X, sum(x * np.conjugate(s)))
+    return X
+
+def test_DFT():
+    assert np.allclose(DFT(np.array([1, 2, 3, 4])), np.array([10.0 + 0.0j,  -2. +2.0j,  -2.0 - 9.79717439e-16j, -2.0 - 2.0j]))
