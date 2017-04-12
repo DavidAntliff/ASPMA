@@ -55,7 +55,23 @@ def optimalZeropad(x, fs, f):
         mX (numpy array) = The positive half of the DFT spectrum of the N point DFT after zero-padding 
                         x appropriately (zero-padding length to be computed). mX is (N/2)+1 samples long
     """
-    ## Your code here
+    M = len(x)
+    res = fs / f
+    N = int(np.ceil(M / res) * res)
+    Z = int(N - M)  # zero pad amount
+
+    print("M {}, res {}, N {}, Z {}".format(M, res, N, Z))
+
+    hM1 = int(np.floor((M + 1) / 2))
+    hM2 = int(np.floor(M / 2))
+
+    fftbuffer = np.zeros(N)
+    fftbuffer[:hM1] = x[hM2:]
+    fftbuffer[N - hM2:] = x[:hM2]
+    X = fft(fftbuffer)
+
+    mX = 20.0 * np.log10(abs(X))
+    return mX[:N/2+1]
 
 def get_test_case(part_id, case_id):
     import loadTestCases
@@ -65,7 +81,7 @@ def get_test_case(part_id, case_id):
 def test_case_1():
     testcase = get_test_case(2, 1)
     output = optimalZeropad(**testcase['input'])
-    assert np.allclose(testcase['output'], output, atol=1e-3, rtol=0)
+    assert np.allclose(testcase['output'], output, atol=1e-6, rtol=0)
 
 def test_case_2():
     testcase = get_test_case(2, 2)
