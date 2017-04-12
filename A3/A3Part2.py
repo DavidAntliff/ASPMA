@@ -56,3 +56,18 @@ def optimalZeropad(x, fs, f):
                         x appropriately (zero-padding length to be computed). mX is (N/2)+1 samples long
     """
     ## Your code here
+
+def get_test_case(part_id, case_id):
+    import loadTestCases
+    testcase = loadTestCases.load(part_id, case_id)
+    return testcase
+
+def test_case_1():
+    testcase = get_test_case(2, 1)
+    output = optimalZeropad(**testcase['input'])
+    assert np.allclose(testcase['output'], output, atol=1e-3, rtol=0)
+
+def test_case_2():
+    testcase = get_test_case(2, 2)
+    output = optimalZeropad(**testcase['input'])
+    assert np.allclose(testcase['output'], output, atol=1e-6, rtol=0)

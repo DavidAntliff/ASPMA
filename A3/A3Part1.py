@@ -60,4 +60,22 @@ def minimizeEnergySpreadDFT(x, fs, f1, f2):
         mX (numpy array) = The positive half of the DFT spectrum (in dB) of the M sample segment of x. 
                            mX is (M/2)+1 samples long (M is to be computed)
     """
-    ## Your code here
+    M = int(fs / gcd(f1, f2))
+    X = fft(x[:M])
+    mX = 20.0 * np.log10(abs(X[:M/2+1]))
+    return mX
+
+def get_test_case(part_id, case_id):
+    import loadTestCases
+    testcase = loadTestCases.load(part_id, case_id)
+    return testcase
+
+def test_case_1():
+    testcase = get_test_case(1, 1)
+    output = minimizeEnergySpreadDFT(**testcase['input'])
+    assert np.allclose(testcase['output'], output, atol=1e-3, rtol=0)
+
+def test_case_2():
+    testcase = get_test_case(1, 2)
+    output = minimizeEnergySpreadDFT(**testcase['input'])
+    assert np.allclose(testcase['output'], output, atol=1e-6, rtol=0)
