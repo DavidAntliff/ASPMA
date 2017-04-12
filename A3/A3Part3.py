@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.fftpack import fft, fftshift
 import math
+import pytest
 
 """
 A3-Part-3: Symmetry properties of the DFT
@@ -38,6 +39,7 @@ windowing), the function returns (False,  array([ 4.,  1.,  2.,  3.,  1.,  2.,  
 2.+0.69j, 2.+3.51j, 2.-1.08j, 2.+1.08j, 2.-3.51j, 2.-0.69j])) (values are approximate)
 """
 
+@pytest.mark.skip()
 def testRealEven(x):
     """
     Inputs:
@@ -48,4 +50,36 @@ def testRealEven(x):
         dftbuffer (numpy array, possibly complex) = The M point zero phase windowed version of x 
         X (numpy array, possibly complex) = The M point DFT of dftbuffer 
     """
-    ## Your code here
+    M = len(x)
+    N = M
+    hM1 = int(np.floor((M + 1) / 2))
+    hM2 = int(np.floor(M / 2))
+    dftbuffer = np.zeros(N)
+    dftbuffer[:hM1] = x[hM2:]
+    dftbuffer[N - hM2:] = x[:hM2]
+    X = fft(dftbuffer)
+    # signal is real and even if imaginary part is all zero
+    isRealEven = bool(np.all(abs(X.imag) < 1e-6))  # np booleans are not JSON serializable
+    return isRealEven, dftbuffer, X
+
+
+def get_test_case(part_id, case_id):
+    import loadTestCases
+    testcase = loadTestCases.load(part_id, case_id)
+    return testcase
+
+
+def test_case_1():
+    testcase = get_test_case(3, 1)
+    isRealEven, dftbuffer, X = testRealEven(**testcase['input'])
+    assert testcase['output'][0] == isRealEven
+    assert np.allclose(testcase['output'][1], dftbuffer, atol=1e-6, rtol=0)
+    assert np.allclose(testcase['output'][2], X, atol=1e-6, rtol=0)
+
+
+def test_case_2():
+    testcase = get_test_case(3, 2)
+    isRealEven, dftbuffer, X = testRealEven(**testcase['input'])
+    assert testcase['output'][0] == isRealEven
+    assert np.allclose(testcase['output'][1], dftbuffer, atol=1e-6, rtol=0)
+    assert np.allclose(testcase['output'][2], X, atol=1e-6, rtol=0)
