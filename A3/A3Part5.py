@@ -65,11 +65,13 @@ def zpFFTsizeExpt(x, fs):
     mX2, _ = dftAnal(x, w2, 512)
     mX3, _ = dftAnal(xseg, w1, 512)  # zero-padding
 
-    plt.plot(mX1, 'r')
+    # dftAnal returns N/2+1 FFT samples, where [0] is DC and [N/2] is Nyquist.
+    # So frequency labels should include 0 and Nyquist.
+    plt.plot(np.linspace(0.0, fs / 2.0, 256 / 2.0 + 1, endpoint=True), mX1, 'r')
     plt.figure()
-    plt.plot(mX2, 'g')
+    plt.plot(np.linspace(0.0, fs / 2.0, 512 / 2.0 + 1, endpoint=True), mX2, 'g')
     plt.figure()
-    plt.plot(mX3, 'b')
+    plt.plot(np.linspace(0.0, fs / 2.0, 512 / 2.0 + 1, endpoint=True), mX3, 'b')
     plt.show()
 
     return mX1[:80], mX2[:80], mX3[:80]
