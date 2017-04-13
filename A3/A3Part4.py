@@ -87,12 +87,12 @@ def get_test_case(part_id, case_id):
 def test_case_1():
     testcase = get_test_case(4, 1)
     y, yfilt = suppressFreqDFTmodel(**testcase['input'])
-    assert np.allclose(testcase['output'][1], y, atol=1e-6, rtol=0)
-    assert np.allclose(testcase['output'][2], yfilt, atol=1e-6, rtol=0)
+    assert np.allclose(testcase['output'][0], y, atol=1e-6, rtol=0)
+    assert np.allclose(testcase['output'][1], yfilt, atol=1e-6, rtol=0)
 
 
 def test_case_2():
     testcase = get_test_case(4, 2)
     y, yfilt = suppressFreqDFTmodel(**testcase['input'])
-    assert np.allclose(testcase['output'][1], y, atol=1e-6, rtol=0)
-    assert np.allclose(testcase['output'][2], yfilt, atol=1e-6, rtol=0)
+    assert np.allclose(testcase['output'][0], y, atol=1e-6, rtol=0)
+    assert np.allclose(testcase['output'][1], yfilt, atol=1e-6, rtol=0)

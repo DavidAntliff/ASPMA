@@ -58,6 +58,32 @@ def zpFFTsizeExpt(x, fs):
     
     M = len(x)/2
     xseg = x[:M]
-    w1 = get_window('hamming',M)
-    w2 = get_window('hamming',2*M)
-    ## Your code here 
+    w1 = get_window('hamming', M)
+    w2 = get_window('hamming', 2*M)
+
+    mX1, _ = dftAnal(xseg, w1, 256)
+    mX2, _ = dftAnal(x, w2, 512)
+    mX3, _ = dftAnal(xseg, w1, 512)  # zero-padding
+
+    plt.plot(mX1, 'r')
+    plt.figure()
+    plt.plot(mX2, 'g')
+    plt.figure()
+    plt.plot(mX3, 'b')
+    plt.show()
+
+    return mX1[:80], mX2[:80], mX3[:80]
+
+
+def get_test_case(part_id, case_id):
+    import loadTestCases
+    testcase = loadTestCases.load(part_id, case_id)
+    return testcase
+
+
+def test_case_1():
+    testcase = get_test_case(5, 1)
+    mX1_80, mX2_80, mX3_80 = zpFFTsizeExpt(**testcase['input'])
+    assert np.allclose(testcase['output'][0], mX1_80, atol=1e-6, rtol=0)
+    assert np.allclose(testcase['output'][1], mX2_80, atol=1e-6, rtol=0)
+    assert np.allclose(testcase['output'][2], mX3_80, atol=1e-6, rtol=0)
