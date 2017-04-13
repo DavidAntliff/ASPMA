@@ -4,6 +4,8 @@ from dftModel import dftAnal, dftSynth
 from scipy.signal import get_window
 import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
+
 """
 A3-Part-4: Suppressing frequency components using DFT model
 
@@ -61,5 +63,36 @@ def suppressFreqDFTmodel(x, fs, N):
     M = len(x)
     w = get_window('hamming', M)
     outputScaleFactor = sum(w)
-    
-    ## Your code here
+    #N = 2 ** np.ceil(np.log2(M))
+    mX, pX = dftAnal(x, w, N)
+
+    # zero magnitude bins <= 70 Hz
+    fft_res = fs / N
+    last_bin = int(np.ceil(70.0 / fft_res))
+    mX_filtered = mX.copy()
+    for i in range(last_bin + 1):
+        mX_filtered[i] = -120.0  # 10.0 ** (-120.0 / 20.0)
+
+    y = dftSynth(mX, pX, M) * outputScaleFactor
+    yfilt = dftSynth(mX_filtered, pX, M) * outputScaleFactor
+    return y, yfilt
+
+
+def get_test_case(part_id, case_id):
+    import loadTestCases
+    testcase = loadTestCases.load(part_id, case_id)
+    return testcase
+
+
+def test_case_1():
+    testcase = get_test_case(4, 1)
+    y, yfilt = suppressFreqDFTmodel(**testcase['input'])
+    assert np.allclose(testcase['output'][1], y, atol=1e-6, rtol=0)
+    assert np.allclose(testcase['output'][2], yfilt, atol=1e-6, rtol=0)
+
+
+def test_case_2():
+    testcase = get_test_case(4, 2)
+    y, yfilt = suppressFreqDFTmodel(**testcase['input'])
+    assert np.allclose(testcase['output'][1], y, atol=1e-6, rtol=0)
+    assert np.allclose(testcase['output'][2], yfilt, atol=1e-6, rtol=0)
