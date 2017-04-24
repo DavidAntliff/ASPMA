@@ -1,6 +1,7 @@
 import os
 import sys
 import numpy as np
+import scipy
 from scipy.signal import get_window
 import matplotlib.pyplot as plt
 
@@ -9,6 +10,9 @@ import stft
 import utilFunctions as UF
 
 eps = np.finfo(float).eps
+
+assert np.version.version == "1.11.0"
+assert scipy.version.version == "0.17.0"
 
 """
 A4-Part-3: Computing band-wise energy envelopes of a signal
