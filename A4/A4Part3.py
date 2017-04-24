@@ -84,6 +84,11 @@ def computeEngEnv(inputFile, window, M, N, H):
             engEnv[:,0]: Energy envelope in band 0 < f < 3000 Hz (in dB)
             engEnv[:,1]: Energy envelope in band 3000 < f < 10000 Hz (in dB)
     """
+    _, _, env = compute_eng_env(inputFile, window, M, N, H)
+    return env
+
+
+def compute_eng_env(inputFile, window, M, N, H):
     fs, x = UF.wavread(inputFile)
     w = get_window(window, M)
 
@@ -100,14 +105,21 @@ def computeEngEnv(inputFile, window, M, N, H):
         env[frame, 0] = 10.0 * np.log10(sum(mXlinear[frame, band_low_bins] ** 2))
         env[frame, 1] = 10.0 * np.log10(sum(mXlinear[frame, band_high_bins] ** 2))
 
-    assert env.shape == (num_frames, 2)
+    plot_spectrogram_with_energy_envelope(mX, env, M, N, H, fs, 'mX ({}), M={}, N={}, H={}'.format(inputFile, M, N, H))
+
+    return fs, mX, env
+
+
+def plot_spectrogram_with_energy_envelope(mX, env, M, N, H, fs, title):
+    assert mX.shape[0] == env.shape[0]
+    num_frames = mX.shape[0]
 
     frmTime = H * np.arange(num_frames) / float(fs)
     binFreq = np.arange(N / 2 + 1) * float(fs) / N
 
-    plt.suptitle('mX ({}), M={}, N={}, H={}'.format(inputFile, M, N, H))
+    plt.suptitle(title)
 
-    plt.subplot(2, 1, 1)
+    plt.subplot(3, 1, 1)
     plt.title("Spectrogram")
     plt.pcolormesh(frmTime, binFreq, np.transpose(mX), cmap='jet')
     plt.autoscale(tight=True)
@@ -115,7 +127,7 @@ def computeEngEnv(inputFile, window, M, N, H):
     # plt.xlabel("Time (sec)")
     plt.ylabel("Frequency (Hz)")
 
-    plt.subplot(2, 1, 2)
+    plt.subplot(3, 1, 2)
     plt.title("Energy Envelopes")
     plt.plot(frmTime, env[:, 0], 'r', label='Low')
     plt.plot(frmTime, env[:, 1], 'b', label='High')
@@ -124,8 +136,6 @@ def computeEngEnv(inputFile, window, M, N, H):
     plt.legend(loc='best')
 
     plt.subplots_adjust(hspace=0.5)
-
-    return env
 
 
 def get_test_case(part_id, case_id):
@@ -136,8 +146,8 @@ def get_test_case(part_id, case_id):
 
 def test_case_1():
     testcase = get_test_case(3, 1)
-    engEnv = computeEngEnv(**testcase['input'])
-    #plt.show()
+    #engEnv = computeEngEnv(**testcase['input'])
+    plt.show()
     assert np.allclose(testcase['output'], engEnv, atol=1e-6, rtol=0)
 
 

@@ -9,6 +9,9 @@ sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../..
 import stft
 import utilFunctions as UF
 
+from A4Part3 import compute_eng_env
+
+
 eps = np.finfo(float).eps
 
 """
@@ -84,4 +87,74 @@ def computeODF(inputFile, window, M, N, H):
             ODF[:,1]: ODF computed in band 3000 < f < 10000 Hz
     """
     
-    ### your code here
+    fs, mX, env = compute_eng_env(inputFile, window, M, N, H)
+
+    num_frames = env.shape[0]
+    odf = np.zeros(shape=(num_frames, 2))
+
+    for frame in range(1, num_frames):
+        odf[frame, 0] = rectify(env[frame, 0] - env[frame - 1, 0])
+        odf[frame, 1] = rectify(env[frame, 1] - env[frame - 1, 1])
+
+    plot_spectrogram_with_odf(mX, odf, M, N, H, fs, 'mX ({}), M={}, N={}, H={}'.format(inputFile, M, N, H))
+
+    return odf
+
+
+def plot_spectrogram_with_odf(mX, odf, M, N, H, fs, title):
+    assert mX.shape[0] == odf.shape[0]
+    num_frames = mX.shape[0]
+
+    frmTime = H * np.arange(num_frames) / float(fs)
+    binFreq = np.arange(N / 2 + 1) * float(fs) / N
+
+    # plt.suptitle(title)
+    #
+    # plt.subplot(2, 1, 1)
+    # plt.title("Spectrogram")
+    # plt.pcolormesh(frmTime, binFreq, np.transpose(mX), cmap='jet')
+    # plt.autoscale(tight=True)
+    # plt.ylim([0, 10000])
+    # # plt.xlabel("Time (sec)")
+    # plt.ylabel("Frequency (Hz)")
+
+    plt.subplot(3, 1, 3)
+    plt.title("Onset Detection Function")
+    plt.plot(frmTime, odf[:, 0], 'b', label='Low')
+    plt.plot(frmTime, odf[:, 1], 'g', label='High')
+    plt.xlabel("Time (sec)")
+    plt.ylabel("Magnitude (dB)")
+    plt.legend(loc='best')
+
+    # plt.subplots_adjust(hspace=0.5)
+
+
+def rectify(x):
+    return x if x > 0 else 0
+
+
+def get_test_case(part_id, case_id):
+    import loadTestCases
+    testcase = loadTestCases.load(part_id, case_id)
+    return testcase
+
+
+def test_case_1():
+    testcase = get_test_case(4, 1)
+    odf = computeODF(**testcase['input'])
+    #plt.show()
+    assert np.allclose(testcase['output'], odf, atol=1e-6, rtol=0)
+
+
+def test_case_2():
+    testcase = get_test_case(4, 2)
+    odf = computeODF(**testcase['input'])
+    #plt.show()
+    assert np.allclose(testcase['output'], odf, atol=1e-6, rtol=0)
+
+
+def test_case_3():
+    testcase = get_test_case(4, 3)
+    odf = computeODF(**testcase['input'])
+    #plt.show()
+    assert np.allclose(testcase['output'], odf, atol=1e-6, rtol=0)
