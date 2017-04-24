@@ -80,6 +80,72 @@ def computeEngEnv(inputFile, window, M, N, H):
             engEnv[:,0]: Energy envelope in band 0 < f < 3000 Hz (in dB)
             engEnv[:,1]: Energy envelope in band 3000 < f < 10000 Hz (in dB)
     """
-    
-    ### your code here
-    
+    fs, x = UF.wavread(inputFile)
+    w = get_window(window, M)
+
+    mX, pX = stft.stftAnal(x, w, N, H)
+    mXlinear = 10.0 ** (mX / 20.0)
+
+    band_low_bins = np.array([ k for k in range(N) if 0 < k * fs / N < 3000.0])
+    band_high_bins = np.array([ k for k in range(N) if 3000.0 < k * fs / N < 10000.0])
+
+    num_frames = mX.shape[0]
+    env = np.zeros(shape=(num_frames, 2))
+
+    for frame in range(num_frames):
+        env[frame, 0] = 10.0 * np.log10(sum(mXlinear[frame, band_low_bins] ** 2))
+        env[frame, 1] = 10.0 * np.log10(sum(mXlinear[frame, band_high_bins] ** 2))
+
+    assert env.shape == (num_frames, 2)
+
+    frmTime = H * np.arange(num_frames) / float(fs)
+    binFreq = np.arange(N / 2 + 1) * float(fs) / N
+
+    plt.suptitle('mX ({}), M={}, N={}, H={}'.format(inputFile, M, N, H))
+
+    plt.subplot(2, 1, 1)
+    plt.title("Spectrogram")
+    plt.pcolormesh(frmTime, binFreq, np.transpose(mX), cmap='jet')
+    plt.autoscale(tight=True)
+    plt.ylim([0, 10000])
+    # plt.xlabel("Time (sec)")
+    plt.ylabel("Frequency (Hz)")
+
+    plt.subplot(2, 1, 2)
+    plt.title("Energy Envelopes")
+    plt.plot(frmTime, env[:, 0], 'r', label='Low')
+    plt.plot(frmTime, env[:, 1], 'b', label='High')
+    plt.xlabel("Time (sec)")
+    plt.ylabel("Energy (dB)")
+    plt.legend(loc='best')
+
+    plt.subplots_adjust(hspace=0.5)
+
+    return env
+
+
+def get_test_case(part_id, case_id):
+    import loadTestCases
+    testcase = loadTestCases.load(part_id, case_id)
+    return testcase
+
+
+def test_case_1():
+    testcase = get_test_case(3, 1)
+    engEnv = computeEngEnv(**testcase['input'])
+    #plt.show()
+    assert np.allclose(testcase['output'], engEnv, atol=1e-6, rtol=0)
+
+
+def test_case_2():
+    testcase = get_test_case(3, 2)
+    engEnv = computeEngEnv(**testcase['input'])
+    #plt.show()
+    assert np.allclose(testcase['output'], engEnv, atol=1e-6, rtol=0)
+
+
+def test_case_3():
+    testcase = get_test_case(3, 3)
+    engEnv = computeEngEnv(**testcase['input'])
+    #plt.show()
+    assert np.allclose(testcase['output'], engEnv, atol=1e-6, rtol=0)
