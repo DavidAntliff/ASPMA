@@ -2,6 +2,7 @@ import os
 import sys
 import numpy as np
 import math
+import scipy
 from scipy.signal import get_window
 import matplotlib.pyplot as plt
 
@@ -10,6 +11,8 @@ import stft
 import utilFunctions as UF
 eps = np.finfo(float).eps
 
+assert np.version.version == "1.11.0"
+assert scipy.version.version == "0.17.0"
 
 """
 A4-Part-2: Measuring noise in the reconstructed signal using the STFT model 
@@ -59,4 +62,42 @@ def computeSNR(inputFile, window, M, N, H):
             The function should return a python tuple of both the SNR values (SNR1, SNR2)
             SNR1 and SNR2 are floats.
     """
-    ## your code here
+    fs, x = UF.wavread(inputFile)
+    w = get_window(window, M)
+
+    y = stft.stft(x, w, N, H)
+
+    noise = x - y
+    E_signal1 = sum(x ** 2)
+    E_noise1 = sum(noise ** 2)
+    snr1 = 10.0 * np.log10(E_signal1 / E_noise1)
+
+    E_signal2 = sum(x[M:-M] ** 2)
+    E_noise2 = sum(noise[M:-M] ** 2)
+    snr2 = 10.0 * np.log10(E_signal2 / E_noise2)
+
+    return snr1, snr2
+
+
+def get_test_case(part_id, case_id):
+    import loadTestCases
+    testcase = loadTestCases.load(part_id, case_id)
+    return testcase
+
+
+def test_case_1():
+    testcase = get_test_case(2, 1)
+    snr = computeSNR(**testcase['input'])
+    assert testcase['output'] == snr
+
+
+def test_case_2():
+    testcase = get_test_case(2, 2)
+    snr = computeSNR(**testcase['input'])
+    assert testcase['output'] == snr
+
+
+def test_case_3():
+    testcase = get_test_case(2, 3)
+    snr = computeSNR(**testcase['input'])
+    assert testcase['output'] == snr

@@ -1,9 +1,17 @@
 import numpy as np
+import scipy
 from scipy.signal import get_window
 from scipy.fftpack import fft, fftshift
 import math
 import matplotlib.pyplot as plt
 eps = np.finfo(float).eps
+
+import logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
+
+assert np.version.version == "1.11.0"
+assert scipy.version.version == "0.17.0"
 
 """ 
 A4-Part-1: Extracting the main lobe of the spectrum of a window
@@ -58,7 +66,58 @@ def extractMainLobe(window, M):
             spectrum of the window in decibels (dB).
     """
 
+    logger.debug("window {}, M {}".format(window, M))
     w = get_window(window, M)         # get the window 
-    
-    ### Your code here
-    
+    N = 8 * M
+
+    X = fft(w, N)
+
+    Xshift = fftshift(X)
+    plt.plot(abs(Xshift))
+    plt.plot(20*np.log10(abs(Xshift)))
+
+    m1 = find_minima(abs(Xshift), N/2, -1)
+    m2 = find_minima(abs(Xshift), N/2, +1)
+    logger.info("m1 {}, m2 {}".format(m1, m2))
+
+    Xlobe = Xshift[m1:m2+1]
+    absXlobe = abs(Xlobe) + eps
+    #absXlobe[absXlobe < eps] = eps  # avoid log(0)
+    logger.info("len absXlobe {}".format(len(absXlobe)))
+    return 20 * np.log10(absXlobe)
+
+
+def find_minima(x, start, direction=1):
+    y = 0
+    i = start + direction
+    while i < len(x) and i >= 0 and x[i] < x[i - direction]:
+        i += direction
+    return i - direction
+
+
+def get_test_case(part_id, case_id):
+    import loadTestCases
+    testcase = loadTestCases.load(part_id, case_id)
+    return testcase
+
+
+def test_case_1():
+    testcase = get_test_case(1, 1)
+    main_lobe = extractMainLobe(**testcase['input'])
+    plt.figure()
+    plt.plot(main_lobe)
+    plt.plot(testcase['output'])
+    plt.show()
+    assert np.allclose(testcase['output'], main_lobe, atol=1e-6, rtol=0)
+
+
+def test_case_2():
+    testcase = get_test_case(1, 2)
+    main_lobe = extractMainLobe(**testcase['input'])
+    assert np.allclose(testcase['output'], main_lobe, atol=1e-6, rtol=0)
+
+
+def test_case_3():
+    testcase = get_test_case(1, 3)
+    main_lobe = extractMainLobe(**testcase['input'])
+    assert np.allclose(testcase['output'], main_lobe, atol=1e-6, rtol=0)
