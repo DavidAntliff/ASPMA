@@ -146,8 +146,8 @@ def get_test_case(part_id, case_id):
 
 def test_case_1():
     testcase = get_test_case(3, 1)
-    #engEnv = computeEngEnv(**testcase['input'])
-    plt.show()
+    engEnv = computeEngEnv(**testcase['input'])
+    #plt.show()
     assert np.allclose(testcase['output'], engEnv, atol=1e-6, rtol=0)
 
 
