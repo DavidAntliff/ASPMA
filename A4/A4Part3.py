@@ -95,8 +95,16 @@ def compute_eng_env(inputFile, window, M, N, H):
     mX, pX = stft.stftAnal(x, w, N, H)
     mXlinear = 10.0 ** (mX / 20.0)
 
-    band_low_bins = np.array([ k for k in range(N) if 0 < k * fs / N < 3000.0])
-    band_high_bins = np.array([ k for k in range(N) if 3000.0 < k * fs / N < 10000.0])
+    # Get an array of indices for bins within each band range:
+
+    # Using list comprehension:
+    # band_low_bins = np.array([ k for k in range(N) if 0 < k * fs / N < 3000.0])
+    # band_high_bins = np.array([ k for k in range(N) if 3000.0 < k * fs / N < 10000.0])
+
+    # Using np.where():
+    bins = np.arange(0, N) * fs / N
+    band_low_bins = np.where((bins > 0) & (bins < 3000.0))[0]
+    band_high_bins = np.where((bins > 3000) & (bins < 10000.0))[0]
 
     num_frames = mX.shape[0]
     env = np.zeros(shape=(num_frames, 2))
