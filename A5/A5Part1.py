@@ -59,5 +59,60 @@ def minFreqEstErr(inputFile, f):
     # analysis parameters:
     window = 'blackman'
     t = -40
-    
-    ### Your code here
+
+    fs, x = UF.wavread(inputFile)
+
+    F_min = 100.0
+    F_max = 2000.0
+
+    k = 1
+    while True:
+        M = 100 * k + 1
+        N = int(2 ** (math.floor(np.log2(M)) + 1))
+        #print("M {}, N {}".format(M, N))
+        w = get_window(window, M)
+
+        x1 = x[0.5 * fs - (M + 1) / 2:0.5 * fs + (M + 1) / 2 - 1]  # M must be odd
+        mX, pX = DFT.dftAnal(x1, w, N)
+        ploc = UF.peakDetection(mX, t)
+        iploc, ipmag, ipphase = UF.peakInterp(mX, pX, ploc)
+        ipfreq = fs * iploc / float(N)
+        fEst = ipfreq[0]
+        fEstError = abs(fEst - f)
+        print("fEstError {0:.3f}".format(fEstError))
+        if fEstError < 0.05:
+            break
+        k += 1
+
+    print("fEst {}, M {}, N {}, frequency estimation error {:.3f}".format(fEst, M, N, fEstError))
+    return fEst, M, N
+
+
+def get_test_case(part_id, case_id):
+    import loadTestCases
+    testcase = loadTestCases.load(part_id, case_id)
+    return testcase
+
+
+def test_case_1():
+    testcase = get_test_case(1, 1)
+    fEst, M, N = minFreqEstErr(**testcase['input'])
+    assert np.isclose(fEst, testcase['output'][0], atol=1e-3, rtol=0)
+    assert M == testcase['output'][1]
+    assert N == testcase['output'][2]
+
+
+def test_case_2():
+    testcase = get_test_case(1, 2)
+    fEst, M, N = minFreqEstErr(**testcase['input'])
+    assert np.isclose(fEst, testcase['output'][0], atol=1e-3, rtol=0)
+    assert M == testcase['output'][1]
+    assert N == testcase['output'][2]
+
+
+def test_case_3():
+    testcase = get_test_case(1, 3)
+    fEst, M, N = minFreqEstErr(**testcase['input'])
+    assert np.isclose(fEst, testcase['output'][0], atol=1e-3, rtol=0)
+    assert M == testcase['output'][1]
+    assert N == testcase['output'][2]
