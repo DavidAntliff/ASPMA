@@ -28,6 +28,21 @@ thoughts on the forum thread (https://class.coursera.org/audio-002/forum/list?fo
 parameter choices you made, tradeoffs that you encountered, and quality of the reconstruction you achieved. 
 
 """
+
+# Notes:
+#  Default SNR is 15.971847485
+#  Changing maxnSines to 8 reduces SNR to 13.4809610994
+#  Changing maxnSines to 9 changes SNR to 15.2597164596
+#  Changing maxnSines to 10 changes SNR to 15.5443665038
+#
+#  Hamming window main lobe size is 4 samples, so 4 * 44100 / 50Hz = 3528
+#  M=3529, N=4096, t=-60 gives SNR 14.94 dB but "looks"clean
+#  M=3529, N=4096, t=-50, blackmanharris gives SNR 17.66 dB
+#  M=4095, N=4096, t=-50, blackmanharris gives SNR 16.62 dB
+#  M=4095, N=4096, t=-60, blackmanharris gives SNR 16.62 dB - no significant difference
+#  M=3529, N=4096, t=-50, blackmanharris, minSineDur=0.01 gives SNR 18.15 dB
+#
+
 def exploreSineModel(inputFile='../../sounds/multiSines.wav'):
     """
     Input:
@@ -36,17 +51,28 @@ def exploreSineModel(inputFile='../../sounds/multiSines.wav'):
             return True
             Discuss on the forum!
     """
-    window='hamming'                            # Window type
-    M=3001                                      # Window size in sample
+    # window='hamming'                            # Window type
+    window='blackmanharris'                            # Window type
+    # M=3001                                      # Window size in sample
+    M=3529                                      # Window size in sample
+    #M=4095                                      # Window size in sample
     N=4096                                      # FFT Size
-    t=-80                                       # Threshold                
-    minSineDur=0.02                             # minimum duration of a sinusoid
+    #N=8192                                      # FFT Size
+    # N=8192                                      # FFT Size
+    # t=-80                                       # Threshold
+    t=-50                                       # Threshold
+    #minSineDur=0.02                             # minimum duration of a sinusoid
+    minSineDur=0.01                             # minimum duration of a sinusoid
     maxnSines=15                                # Maximum number of sinusoids at any time frame
+    #maxnSines=9                                # Maximum number of sinusoids at any time frame
     freqDevOffset=10                            # minimum frequency deviation at 0Hz
+    #freqDevOffset=20                            # minimum frequency deviation at 0Hz
     freqDevSlope=0.001                          # slope increase of minimum frequency deviation
+    # Ns = 512                                    # size of fft used in synthesis
+    # H = 128                                     # hop size (has to be 1/4 of Ns)
     Ns = 512                                    # size of fft used in synthesis
-    H = 128                                     # hop size (has to be 1/4 of Ns)
-    
+    H = Ns / 4                                  # hop size (has to be 1/4 of Ns)
+
     fs, x = UF.wavread(inputFile)               # read input sound
     w = get_window(window, M)                   # compute analysis window
 
@@ -61,6 +87,15 @@ def exploreSineModel(inputFile='../../sounds/multiSines.wav'):
 
     # write the synthesized sound obtained from the sinusoidal synthesis
     UF.wavwrite(y, fs, outputFile)
+
+    # SNR calculation
+    x1 = x[:len(y)]
+    e_signal = calculate_energy(x1)
+    e_error = calculate_energy(x1 - y)
+    snr = calculate_snr(e_signal, e_error)
+    print("SNR {}".format(snr))
+    errorFile = os.path.basename(inputFile)[:-4] + '_sineModel_error.wav'
+    UF.wavwrite(x1 - y, fs, errorFile)
 
     # create figure to show plots
     plt.figure(figsize=(12, 9))
@@ -89,6 +124,7 @@ def exploreSineModel(inputFile='../../sounds/multiSines.wav'):
     # plot the output sound
     plt.subplot(3,1,3)
     plt.plot(np.arange(y.size)/float(fs), y)
+    plt.plot(np.arange(y.size)/float(fs), abs(x1 - y))  # error
     plt.axis([0, y.size/float(fs), min(y), max(y)])
     plt.ylabel('amplitude')
     plt.xlabel('time (sec)')
@@ -97,3 +133,15 @@ def exploreSineModel(inputFile='../../sounds/multiSines.wav'):
     plt.tight_layout()
     plt.show()
     return True
+
+
+def calculate_energy(x):
+    return sum(x ** 2)
+
+
+def calculate_snr(e_signal, e_noise):
+    return 10.0 * np.log10(e_signal / e_noise)
+
+
+if __name__ == "__main__":
+    exploreSineModel()
