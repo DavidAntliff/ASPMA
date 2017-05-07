@@ -67,13 +67,29 @@ def estimateF0(inputFile = '../../sounds/cello-double-2.wav'):
     """
 
     ### Change these analysis parameter values marked as XX
-    window = XX
-    M = XX
-    N = XX
-    f0et = XX
-    t = XX
-    minf0 = XX
-    maxf0 = XX
+    # window = 'hamming'
+    # M = 1261
+    # N = 2048
+    # f0et = 7
+    # t = -100.0
+    # minf0 = 120.0
+    # maxf0 = 200.0
+
+    window = 'blackman'
+    M = 6401
+    N = 8192
+    f0et = 3
+    t = -58.0
+    minf0 = 130.0
+    maxf0 = 205.0
+
+    # window = 'blackmanharris'
+    # M = 7001
+    # N = 8192
+    # f0et = 3
+    # t = -60.0
+    # minf0 = 130.0
+    # maxf0 = 205.0
 
     ### Do not modify the code below 
     H = 256                                                     #fix hop size
@@ -128,3 +144,7 @@ def estimateF0(inputFile = '../../sounds/cello-double-2.wav'):
         fig.savefig('f0_over_Spectrogram.png', dpi=150, bbox_inches='tight')
 
     return f0
+
+
+if __name__ == "__main__":
+    estimateF0()

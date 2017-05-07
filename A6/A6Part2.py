@@ -94,25 +94,45 @@ def segmentStableNotesRegions(inputFile = '../../sounds/sax-phrase-short.wav', s
     Output:
         segments (np.ndarray): Numpy array containing starting and ending frame indexes of every segment.
     """
-    fs, x = UF.wavread(inputFile)                               #reading inputFile
-    w  = get_window(window, M)                                  #obtaining analysis window    
-    f0 = HM.f0Detection(x, fs, w, N, H, t, minf0, maxf0, f0et)  #estimating F0
-
-    ### your code here
+    fs, x = UF.wavread(inputFile)                               # reading inputFile
+    w = get_window(window, M)                                   # obtaining analysis window
+    f0 = HM.f0Detection(x, fs, w, N, H, t, minf0, maxf0, f0et)  # estimating F0
 
     # 1. convert f0 values from Hz to Cents (as described in pdf document)
+    f0_cents = np.maximum(1200.0 * np.log2(f0 / 55.0), 0.0)
 
-    #2. create an array containing standard deviation of last winStable samples
+    # 2. create an array containing standard deviation of last winStable samples
+    sd = np.zeros(len(f0_cents))
+    for i in range(winStable, len(f0_cents)):
+        sd[i] = np.std(f0_cents[i-winStable:i])
 
-    #3. apply threshold on standard deviation values to find indexes of the stable points in melody
+    # 3. apply threshold on standard deviation values to find indexes of the stable points in melody
+    stable_indices = np.where(sd < stdThsld)[0]
 
-    #4. create segments of continuous stable points such that consecutive stable points belong to same segment
-    
-    #5. apply segment filtering, i.e. remove segments with are < minNoteDur in length
-    
-    # plotSpectogramF0Segments(x, fs, w, N, H, f0, segments)  # Plot spectrogram and F0 if needed
+    # 4. create segments of continuous stable points such that consecutive stable points belong to same segment
+    all_segments = np.empty(shape=(0, 2))
+    start = None
+    for i in range(1, len(stable_indices)):
+        if stable_indices[i] == stable_indices[i - 1] + 1:
+            if start is None:
+                start = i - 1
+        else:
+            if start is not None:
+                first_index = stable_indices[start] - 1
+                last_index_inclusive = stable_indices[i - 1] - 1
+                segment = np.array([[first_index, last_index_inclusive]])
+                all_segments = np.concatenate((all_segments, segment))
+                start = None
+
+    # 5. apply segment filtering, i.e. remove segments with are < minNoteDur in length
+    minNoteDurSamples = fs * minNoteDur
+    minNoteDurFrames = minNoteDurSamples / H
+    segments = np.array([x for x in all_segments if x[1] - x[0] > minNoteDurFrames])
+
+    #plotSpectogramF0Segments(x, fs, w, N, H, f0, segments)  # Plot spectrogram and F0 if needed
 
     # return segments
+    return segments
 
 
 def plotSpectogramF0Segments(x, fs, w, N, H, f0, segments):
@@ -148,4 +168,29 @@ def plotSpectogramF0Segments(x, fs, w, N, H, f0, segments):
     ax.set_aspect((xLim[1]-xLim[0])/(2.0*(yLim[1]-yLim[0])))    
     plt.autoscale(tight=True) 
     plt.show()
-    
+
+
+def get_test_case(part_id, case_id):
+    import loadTestCases
+    testcase = loadTestCases.load(part_id, case_id)
+    return testcase
+
+
+def test_case_1():
+    testcase = get_test_case(2, 1)
+    segments = segmentStableNotesRegions(**testcase['input'])
+    assert np.array_equal(segments, testcase['output'])
+
+
+def test_case_2():
+    testcase = get_test_case(2, 2)
+    segments = segmentStableNotesRegions(**testcase['input'])
+    assert np.array_equal(segments, testcase['output'])
+
+
+def test_case_3():
+    testcase = get_test_case(2, 3)
+    segments = segmentStableNotesRegions(**testcase['input'])
+    assert np.array_equal(segments, testcase['output'])
+
+
