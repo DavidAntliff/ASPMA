@@ -75,11 +75,54 @@ def estimateInharmonicity(inputFile = '../../sounds/piano.wav', t1=0.1, t2=0.5, 
                                         t1 and t2. 
     """
     # 0. Read the audio file and obtain an analysis window
-    
-    # 1. Use harmonic model to compute the harmonic frequencies and magnitudes
-    
-    # 2. Extract the time segment in which you need to compute the inharmonicity. 
-    
-    # 3. Compute the mean inharmonicity of the segment
+    fs, x = UF.wavread(inputFile)
+    w = get_window(window, M)
 
+    # 1. Use harmonic model to compute the harmonic frequencies and magnitudes
+    hfreq, hmag, hphase = HM.harmonicModelAnal(x, fs, w, N, H, t, nH, minf0, maxf0, f0et, harmDevSlope=0.1, minSineDur=0.0)
+
+    # 2. Extract the time segment in which you need to compute the inharmonicity.
+    l1 = np.floor(t1 * fs / H)
+    l2 = np.floor(t2 * fs / H)
+    hfreq1 = hfreq[l1:l2+1]
+    hmag1 = hmag[l1:l2+1]
+    hphase1 = hphase[l1:l2+1]
+
+    # 3. Compute the mean inharmonicity of the segment
+    inharm = np.zeros(shape=(hfreq1.shape[0]))
+    for l, freq in enumerate(hfreq1):
+        R = freq.shape[0]
+        f0 = freq[0]
+        sum = 0.0
+        for r in range(1, R + 1):
+            if freq[r - 1] > 0.0:
+                sum += np.abs(freq[r - 1] - r * f0) / r
+        inharm[l] = sum / R
+
+    meanInharm = np.sum(inharm) / (l2 - l1 + 1)
+    return meanInharm
+
+
+def get_test_case(part_id, case_id):
+    import loadTestCases
+    testcase = loadTestCases.load(part_id, case_id)
+    return testcase
+
+
+def test_case_1():
+    testcase = get_test_case(3, 1)
+    meanInharm = estimateInharmonicity(**testcase['input'])
+    assert np.allclose(meanInharm, testcase['output'], atol=1e-4)
+
+
+def test_case_2():
+    testcase = get_test_case(3, 2)
+    meanInharm = estimateInharmonicity(**testcase['input'])
+    assert np.allclose(meanInharm, testcase['output'], atol=1e-4)
+
+
+def test_case_3():
+    testcase = get_test_case(3, 3)
+    meanInharm = estimateInharmonicity(**testcase['input'])
+    assert np.allclose(meanInharm, testcase['output'], atol=1e-4)
 
