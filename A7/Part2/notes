@@ -1,0 +1,21 @@
+Part 2.1
+
+http://freesound.org/people/neild101/sounds/255835/ I chose this sound because it is distinctly monophonic, therefore a good candidate for fundamental extraction, with no reverb or delay causing notes to overlap (which is a form of polyphonism). In addition, it has some stochastic components (airflow sounds) that should be interesting to model with HPS.
+
+Part 2.2
+
+A quick STFT (M=901,N=4096) shows that the four notes (first two are the same) are roughly centred around 740, 780 and 880 Hz. Examining the spectrum with Sonic Visualizer suggests that harmonics extend beyond 13kHz. There is a clear "silent" gap in the fundamental between each note, however there's evidence of stochastic components both between the harmonics and within the inter-note gaps. This is likely to be airflow sounds such as "blowing" into the whistle. A safe range of frequencies to consider for the fundamental is between 600 and 1050 Hz. The sound seems very stable at most harmonics.
+
+Part 2.3
+
+Window type: blackman seems suitable as it provides better frequency resolution at the cost of lower time resolution than hamming or hann.
+Window size: 441 (odd for zero-phase windowing) based on chosen window lobe width (6), such that 6 samples*44100Hz/600Hz = ~441 samples.
+FFT size: the next power of two above window size is 512, which provides a little zero padding for improved frequency resolution.
+Minimum f0: observed above as 600 Hz and provides satisfactory fundamental detection without being too low.
+Maximum f0: observed above as 1050 Hz and provides satisfactory fundamental detection without being too high.
+Error threshold in f0 detection: started with 10.0 as per assignment guide, did not need to reduce it as fundamental is very stable and harmonics are distinct.
+Number of harmonics: 44100 / 2 / 600 = ~37 so this is a good limit for the number of harmonics to search for, although only about 14 are detected above -90dB.
+Stochastic decimation factor: there is a significant "blowing" component and 0.1 seems to obscure it a little too much, so to my ear it sounded better around 0.2.
+
+Other parameters for the record: Magnitude threshold -90dB, Minimum duration of harmonic tracks 0.1, Max frequency deviation in harmonic tracks 0.001.
+

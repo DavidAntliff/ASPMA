@@ -1,0 +1,15 @@
+Part 1.1:
+STFT with hamming window and M=1024,N=1024 shows a likely fundamental around 200Hz, but frequency resolution is too low, so changed to blackman window, M=6*44100/100=~2647 (visually it appears fundamental doesn't fall below 100Hz), N=4096. This provides better frequency resolution and makes it possible to visually identify that the fundamental ranges from ~140 to ~260 Hz. At the lowest frequency, there will be no more than 44100/2/140=157 harmonics. However DFT at time ~1.38s shows that discernable harmonics don't tend to propagate above about 5000Hz, so instead we could take 5000/140=~35 as a possible limit to the number of useful harmonics. A typical duration for a "stable" segment of the speech is at least 0.15 seconds.
+
+Part 1.2:
+Window type: blackman seems suitable as it provides better frequency resolution at the cost of lower time resolution than hamming or hann.
+Window size: 2647 based on chosen window, such that 6 samples*44100Hz/100Hz = ~2646 samples, plus one to make it odd for zero-phase windowing.
+FFT size: the next power of two above window size is 4096, which provides some zero padding for improved frequency resolution.
+Minimum f0: observed above as 140 Hz but had to lower to 120 to catch the correct fundamental everywhere.
+Maximum f0: observed above as 260 Hz, seems sufficient to locate fundamental correctly.
+Error threshold in f0 detection: 3 seems to provide good f0 detection across the entire sound.
+Number of harmonics: values above 60 do not seem to reduce the residual very much, which is consistent with the observation above that harmonics tend to fall away above 5-10 kHz, whereas lower values lose some of the "air" of the sinusoidal part of the vocal and increase the residual.
+Stochastic decimation factor: above 0.1, the reconstruction degrades noticeably, whereas below 0.1 the stochastic component becomes too quiet, suggesting that 0.1 is a reasonable value.
+
+Other parameters for the record: Magnitude threshold -80dB, Minimum duration of harmonic tracks 0.05, Max frequency deviation in harmonic tracks 0.001
+
