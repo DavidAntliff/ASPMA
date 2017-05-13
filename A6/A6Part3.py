@@ -88,6 +88,8 @@ def estimateInharmonicity(inputFile = '../../sounds/piano.wav', t1=0.1, t2=0.5, 
     hmag1 = hmag[l1:l2+1]
     hphase1 = hphase[l1:l2+1]
 
+    print(l1, l2)
+
     # 3. Compute the mean inharmonicity of the segment
     inharm = np.zeros(shape=(hfreq1.shape[0]))
     for l, freq in enumerate(hfreq1):
