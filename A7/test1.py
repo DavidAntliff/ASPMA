@@ -20,6 +20,7 @@ pY = 2 * np.pi * np.random.rand(N/2)
 Y = np.zeros(N, dtype=complex)
 Y[:N/2] = 10**(mY / 20.0) * np.exp(1j * pY)
 Y[N/2+1:] = 10**(mY[:0:-1] / 20.0) * np.exp(-1j * pY[:0:-1])
+# Y[N/2:] = 10**(mY[::-1] / 20.0) * np.exp(-1j * pY[::-1])  # forum suggests this
 y = np.real(ifft(Y))
 
 import matplotlib.pyplot as plt
