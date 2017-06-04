@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import get_window, triang, blackmanharris
 from scipy.fftpack import ifft
 import os, sys
+import argparse
 import logging
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../software/models/'))
@@ -133,6 +134,34 @@ def plot_spectrogram_with_odf(mX, odf, M, N, H, fs, title):
     # plt.subplots_adjust(hspace=0.5)
 
 
+def get_frame(x, pin, width):
+    """Obtain a frame of signal x, centred on pin, with specified width.
+    If pin is too close to either end of x, pad the result with zeros.
+    """
+    hM1 = int(math.floor(width+1)/2)
+    hM2 = int(math.floor(width/2))
+
+    x1_pin = hM1
+
+    # constrain input data range
+    hM1 = min(pin, hM1)
+    hM2 = min(len(x) - pin, hM2)
+
+    # copy signal ensuring remain in-range
+    x1 = np.zeros(width)
+
+    x1[x1_pin-hM1:x1_pin+hM2] = x[pin-hM1:pin+hM2]
+    # logger.debug("Take input: x[{pin}-{hM1}={lo}, {pin}+{hM2}={hi}], {count} samples"
+    #              .format(pin=pin,
+    #                      hM1=hM1,
+    #                      lo=pin-hM1,
+    #                      hM2=hM2,
+    #                      hi=pin+hM2,
+    #                      count=hM1+hM2))
+
+    return x1
+
+
 def analysis(x, fs, w, N, t):
     hM1 = int(math.floor((w.size+1)/2))                     # half analysis window size by rounding
     hM2 = int(math.floor(w.size/2))                         # half analysis window size by floor
@@ -140,6 +169,15 @@ def analysis(x, fs, w, N, t):
 
     # -----analysis-----
     x1 = x[pin-hM1:pin+hM2]                               # select frame
+    # logger.debug("Analyse input: N {N}, M {M}, x[{pin}-{hM1}={lo}, {pin}+{hM2}={hi}]"
+    #              .format(N=N,
+    #                      M=w.size,
+    #                      pin=pin,
+    #                      hM1=hM1,
+    #                      lo=pin-hM1,
+    #                      hM2=hM2,
+    #                      hi=pin+hM2))
+
     mX, pX = DFT.dftAnal(x1, w, N)                        # compute dft
     ploc = UF.peakDetection(mX, t)                        # detect locations of peaks
     iploc, ipmag, ipphase = UF.peakInterp(mX, pX, ploc)   # refine peak values by interpolation
@@ -184,7 +222,6 @@ def sineModelMultiRes(x, fs, w_seq, N_seq, t, B_seq):
     hNs = Ns/2                                              # half of synthesis FFT size
     pin = max(hNs, hM1)                                     # init sound pointer in middle of anal window
     pend = x.size - pin                                     # last sample to start a frame
-    fftbuffer = np.zeros(max_N)                             # initialize buffer for FFT
     yw = np.zeros(Ns)                                       # initialize output sound frame
     y = np.zeros(x.size)                                    # initialize output array
     sw = np.zeros(Ns)                                       # initialize synthesis window
@@ -197,26 +234,36 @@ def sineModelMultiRes(x, fs, w_seq, N_seq, t, B_seq):
     for i in range(len(w_seq)):
         w_seq[i] = w_seq[i] / sum(w_seq[i])                 # normalize analysis windows
 
+    logger.debug("Hop size {}".format(H))
+
     while pin<pend:                                         # while input sound pointer is within sound
+        #logger.debug("pin {}".format(pin))
+
         # -----analysis-----
-        iploc = [ None ] * k
-        ipmag = [ None ] * k
-        ipphase = [ None ] * k
-        ipfreq = [ None ] * k
+        iplocs = [ None ] * k
+        ipmags = [ None ] * k
+        ipphases = [ None ] * k
+        ipfreqs = [ None ] * k
 
         # the frame of audio to analyse must be as wide as the largest window
-        x1 = x[pin-hM1_max:pin+hM2_max]
+        x1 = get_frame(x, pin, max_window_size)
         for i, (w, N) in enumerate(zip(w_seq, N_seq)):
-            iploc[i], ipmag[i], ipphase[i], ipfreq[i] = analysis(x1, fs, w, N, t)
-            #import pdb; pdb.set_trace()
+            iplocs[i], ipmags[i], ipphases[i], ipfreqs[i] = analysis(x1, fs, w, N, t)
 
         # -----pick bands-----
-        final_ipmag = ipmag[0]
-        final_ipphase = ipphase[0]
-        final_ipfreq = ipfreq[0]
+        final_ipmag = np.array([])
+        final_ipphase = np.array([])
+        final_ipfreq = np.array([])
+        for ipmag, ipphase, ipfreq, (freq_min, freq_max) in zip(ipmags, ipphases, ipfreqs, B_seq):
+            for pmag, pphase, pfreq in zip(ipmag, ipphase, ipfreq):
+                if freq_min <= pfreq < freq_max:
+                    final_ipmag = np.append(final_ipmag, pmag)
+                    final_ipphase = np.append(final_ipphase, pphase)
+                    final_ipfreq = np.append(final_ipfreq, pfreq)
+                    #logger.debug("Add {} Hz from range ({}, {})".format(pfreq, freq_min, freq_max))
+        #import pdb; pdb.set_trace()
 
         # -----synthesis-----
-        #import pdb; pdb.set_trace()
         Y = UF.genSpecSines(final_ipfreq, final_ipmag, final_ipphase, Ns, fs)   # generate sines in the spectrum
         fftbuffer = np.real(ifft(Y))                          # compute inverse FFT
         yw[:hNs-1] = fftbuffer[hNs+1:]                        # undo zero-phase window
@@ -240,8 +287,7 @@ def diff_snr(x, y):
     return snr_from_energy(e_signal, e_error)
 
 
-def main():
-    inputFile = '../../sounds/orchestra.wav'
+def main(inputFile):
     window = 'hamming'
     t = -90
 
@@ -254,28 +300,40 @@ def main():
     y = SM.sineModel(x, fs, w, 1024, t)
 
     # multi-resolution sineModel:
-    N1, M1, B1 = (4096, 4095, (0.0, 1000.0))
-    N2, M2, B2 = (2048, 2047, (1000.0, 5000.0))
-    N3, M3, B3 = (1024, 1023, (5000.0, 22050.0))
+    F0 = 0.0
+    F1 = 1000.0
+    F2 = 5000.0
+    F3 = 22050.0
+
+    N1, M1, B1 = (4096, 4095, (F0, F1))
+    N2, M2, B2 = (2048, 2047, (F1, F2))
+    N3, M3, B3 = (1024, 1023, (F2, F3))
 
     w1 = get_window(window, M1)
     w2 = get_window(window, M2)
     w3 = get_window(window, M3)
 
-    #y_mr = sineModelMultiRes(x, fs, [w1, w2, w3], [N1, N2, N3], t, [B1, B2, B3])
-    y_mr = sineModelMultiRes(x, fs, [w3], [N3], t, [B3])
+    y_mr = sineModelMultiRes(x, fs, [w1, w2, w3], [N1, N2, N3], t, [B1, B2, B3])
+
+    # This should match the "original sineModel" earlier:
+    #y_mr = sineModelMultiRes(x, fs, [w3], [N3], t, [(0.0, 22050.0)])
 
     print("SNR sineModel: {} dB".format(diff_snr(x, y)))
     print("SNR sineModelMultiRes: {} dB".format(diff_snr(x, y_mr)))
-    import pdb; pdb.set_trace()
 
-    #plt.plot(x, color='r', alpha=1.0)
-    plt.plot(y, color='b', alpha=0.5)
+    UF.wavwrite(y, fs, "sineModel.wav")
+    UF.wavwrite(y_mr, fs, "sineModelMultiRes.wav")
+
+    plt.plot(x, color='k', alpha=0.2)
+    plt.plot(y, color='r', alpha=0.5)
     plt.plot(y_mr, color='g', alpha=0.5)
-    #plt.plot(y - x, color='y')
-    #plt.plot(y_mr - x, color='k')
+    #plt.plot(y - x, color='b', alpha=0.5)
+    #plt.plot(y_mr - x, color='y', alpha=0.5)
     plt.show()
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("inputFile", help="Input filename")
+    args = parser.parse_args()
+    main(args.inputFile)
