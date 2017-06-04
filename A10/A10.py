@@ -1,3 +1,12 @@
+# Submitted as part of the course requirements for:
+#
+# Audio Signal Processing for Music Applications
+# https://www.coursera.org/learn/audio-signal-processing
+#
+# Assignment 10 submission: A multi-resolution sinusoidal model
+# David Antliff, May 2017
+#
+
 import numpy as np
 import math
 import matplotlib.pyplot as plt
@@ -8,7 +17,6 @@ import argparse
 import logging
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../software/models/'))
-import stft
 import dftModel as DFT
 import utilFunctions as UF
 import sineModel as SM
@@ -16,122 +24,6 @@ import sineModel as SM
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
-
-
-# From A4Part3:
-def plot_spectrogram_with_energy_envelope(mX, env, M, N, H, fs, title):
-    assert mX.shape[0] == env.shape[0]
-    num_frames = mX.shape[0]
-
-    frmTime = H * np.arange(num_frames) / float(fs)
-    binFreq = np.arange(N / 2 + 1) * float(fs) / N
-
-    plt.suptitle(title)
-
-    plt.subplot(3, 1, 1)
-    plt.title("Spectrogram")
-    plt.pcolormesh(frmTime, binFreq, np.transpose(mX), cmap='jet')
-    plt.autoscale(tight=True)
-    plt.ylim([0, 10000])
-    # plt.xlabel("Time (sec)")
-    plt.ylabel("Frequency (Hz)")
-
-    plt.subplot(3, 1, 2)
-    plt.title("Energy Envelopes")
-    plt.plot(frmTime, env[:, 0], 'r', label='Low')
-    plt.plot(frmTime, env[:, 1], 'b', label='High')
-    plt.xlabel("Time (sec)")
-    plt.ylabel("Energy (dB)")
-    plt.legend(loc='best')
-
-    plt.subplots_adjust(hspace=0.5)
-
-
-# From A4Part3:
-def compute_eng_env(x, fs, w, M, N, H):
-    mX, pX = stft.stftAnal(x, w, N, H)
-    mXlinear = 10.0 ** (mX / 20.0)
-
-    # Get an array of indices for bins within each band range:
-    # Using np.where():
-    bins = np.arange(0, N) * fs / N
-    band_low_bins = np.where((bins > 0) & (bins < 3000.0))[0]
-    band_high_bins = np.where((bins > 3000) & (bins < 10000.0))[0]
-
-    num_frames = mX.shape[0]
-    env = np.zeros(shape=(num_frames, 2))
-
-    for frame in range(num_frames):
-        env[frame, 0] = 10.0 * np.log10(sum(mXlinear[frame, band_low_bins] ** 2))
-        env[frame, 1] = 10.0 * np.log10(sum(mXlinear[frame, band_high_bins] ** 2))
-
-    plot_spectrogram_with_energy_envelope(mX, env, M, N, H, fs, 'mX, M={}, N={}, H={}'.format(M, N, H))
-
-    return fs, mX, env
-
-
-# From A4Part4:
-def rectify(x):
-    return x if x > 0 else 0
-
-
-def computeODF(x, fs, w, M, N, H):
-    """
-    Inputs:
-            inputFile (string): input sound file (monophonic with sampling rate of 44100)
-            window (string): analysis window type (choice of rectangular, triangular, hanning, hamming, 
-                blackman, blackmanharris)
-            M (integer): analysis window size (odd integer value)
-            N (integer): fft size (power of two, bigger or equal than than M)
-            H (integer): hop size for the STFT computation
-    Output:
-            The function should return a numpy array with two columns, where the first column is the ODF 
-            computed on the low frequency band and the second column is the ODF computed on the high 
-            frequency band.
-            ODF[:,0]: ODF computed in band 0 < f < 3000 Hz 
-            ODF[:,1]: ODF computed in band 3000 < f < 10000 Hz
-    """
-
-    fs, mX, env = compute_eng_env(x, fs, w, M, N, H)
-
-    num_frames = env.shape[0]
-    odf = np.zeros(shape=(num_frames, 2))
-
-    for frame in range(1, num_frames):
-        odf[frame, 0] = rectify(env[frame, 0] - env[frame - 1, 0])
-        odf[frame, 1] = rectify(env[frame, 1] - env[frame - 1, 1])
-
-    plot_spectrogram_with_odf(mX, odf, M, N, H, fs, 'mX, M={}, N={}, H={}'.format(M, N, H))
-
-    return odf
-
-
-def plot_spectrogram_with_odf(mX, odf, M, N, H, fs, title):
-    assert mX.shape[0] == odf.shape[0]
-    num_frames = mX.shape[0]
-
-    frmTime = H * np.arange(num_frames) / float(fs)
-    binFreq = np.arange(N / 2 + 1) * float(fs) / N
-
-    # plt.suptitle(title)
-    #
-    # plt.subplot(2, 1, 1)
-    # plt.title("Spectrogram")
-    # plt.pcolormesh(frmTime, binFreq, np.transpose(mX), cmap='jet')
-    # plt.autoscale(tight=True)
-    # plt.ylim([0, 10000])
-    # # plt.xlabel("Time (sec)")
-    # plt.ylabel("Frequency (Hz)")
-
-    plt.subplot(3, 1, 3)
-    plt.title("Onset Detection Function")
-    plt.plot(frmTime, odf[:, 0], 'b', label='Low')
-    plt.plot(frmTime, odf[:, 1], 'g', label='High')
-    plt.xlabel("Time (sec)")
-    plt.ylabel("Magnitude (dB)")
-    plt.legend(loc='best')
-
-    # plt.subplots_adjust(hspace=0.5)
 
 
 def get_frame(x, pin, width):
@@ -163,6 +55,7 @@ def get_frame(x, pin, width):
 
 
 def analysis(x, fs, w, N, t):
+    """Extracted from sineModel. Perform windowed analysis on audio frame."""
     hM1 = int(math.floor((w.size+1)/2))                     # half analysis window size by rounding
     hM2 = int(math.floor(w.size/2))                         # half analysis window size by floor
     pin = int(math.floor(len(x)+1)/2)                       # init sound pointer in middle of data window
@@ -245,12 +138,15 @@ def sineModelMultiRes(x, fs, w_seq, N_seq, t, B_seq):
         ipphases = [ None ] * k
         ipfreqs = [ None ] * k
 
-        # the frame of audio to analyse must be as wide as the largest window
+        # The frame of audio to analyse must be as wide as the largest window
         x1 = get_frame(x, pin, max_window_size)
+
+        # For each band perform analysis with specified FFT size and window.
         for i, (w, N) in enumerate(zip(w_seq, N_seq)):
             iplocs[i], ipmags[i], ipphases[i], ipfreqs[i] = analysis(x1, fs, w, N, t)
 
-        # -----pick bands-----
+        # For each band, pick detected frequencies inside the band. Ignore detected frequencies outside band.
+        # Aggregate the detected frequencies (and associated magnitude, phase) into a single set of values.
         final_ipmag = np.array([])
         final_ipphase = np.array([])
         final_ipfreq = np.array([])
@@ -261,7 +157,6 @@ def sineModelMultiRes(x, fs, w_seq, N_seq, t, B_seq):
                     final_ipphase = np.append(final_ipphase, pphase)
                     final_ipfreq = np.append(final_ipfreq, pfreq)
                     #logger.debug("Add {} Hz from range ({}, {})".format(pfreq, freq_min, freq_max))
-        #import pdb; pdb.set_trace()
 
         # -----synthesis-----
         Y = UF.genSpecSines(final_ipfreq, final_ipmag, final_ipphase, Ns, fs)   # generate sines in the spectrum
@@ -290,10 +185,7 @@ def diff_snr(x, y):
 def main(inputFile):
     window = 'hamming'
     t = -90
-
     fs, x = UF.wavread(inputFile)
-
-    #odf = computeODF(x, fs, w, M, N, H)
 
     # original sineModel:
     w = get_window(window, 1023)
@@ -301,13 +193,18 @@ def main(inputFile):
 
     # multi-resolution sineModel:
     F0 = 0.0
-    F1 = 1000.0
-    F2 = 5000.0
+    #F1 = 1000.0
+    F1 = 200.0
+    #F2 = 5000.0
+    F2 = 3000.0
     F3 = 22050.0
 
-    N1, M1, B1 = (4096, 4095, (F0, F1))
-    N2, M2, B2 = (2048, 2047, (F1, F2))
-    N3, M3, B3 = (1024, 1023, (F2, F3))
+    # N1, M1, B1 = (4096, 4095, (F0, F1))
+    # N2, M2, B2 = (2048, 2047, (F1, F2))
+    # N3, M3, B3 = (1024, 1023, (F2, F3))
+    N1, M1, B1 = (2048, 2047, (F0, F1))
+    N2, M2, B2 = (1024, 1023, (F1, F2))
+    N3, M3, B3 = (512, 511, (F2, F3))
 
     w1 = get_window(window, M1)
     w2 = get_window(window, M2)
@@ -325,10 +222,10 @@ def main(inputFile):
     UF.wavwrite(y_mr, fs, "sineModelMultiRes.wav")
 
     plt.plot(x, color='k', alpha=0.2)
-    plt.plot(y, color='r', alpha=0.5)
+    #plt.plot(y, color='r', alpha=0.5)
     plt.plot(y_mr, color='g', alpha=0.5)
     #plt.plot(y - x, color='b', alpha=0.5)
-    #plt.plot(y_mr - x, color='y', alpha=0.5)
+    plt.plot(y_mr - x, color='y', alpha=0.5)
     plt.show()
 
 
